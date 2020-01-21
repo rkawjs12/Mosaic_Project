@@ -21,6 +21,29 @@ import cv2
 # create the detector, using default weights
 detector = MTCNN()
 
+# get the face embedding for one face
+# 이 함수는 자른 얼굴을 face embedding 시켜주는 함수이다.
+
+def get_embedding(model, face_list):
+    # face_list는 자른 얼굴을 가진 list이다.
+    face_embedding_list = list()
+    #face_embedding_list는 자른 얼굴을 face_embedding 시킨 결과이다.
+
+    for i in range(len(face_list)):
+        # scale pixel values]
+        face_pixels = face_list[i].astype('float32')
+        # standardize pixel values across channels (global)
+        mean, std = face_pixels.mean(), face_pixels.std()
+        face_pixels = (face_pixels - mean) / std
+        # transform face into one sample
+        samples = expand_dims(face_pixels, axis=0)
+        # make prediction to get embedding
+        yhat = model.predict(samples)    
+        face_embedding_list.append(yhat[0])
+    face_embedding_list = asarray(face_embedding_list)
+
+    return face_embedding_list
+
 # extract a single face from a given photograph
 def extract_face(filename, required_size=(160, 160)):
 
@@ -41,9 +64,14 @@ def extract_face(filename, required_size=(160, 160)):
     # coordinate_of_face_list는 자른 얼굴이 가지는 좌표를 나타내는 list로, 크기는 (n,5)이며, n은 detection된 얼굴의 수를 의미한다. 값은 x1, y1, x2, y2, 모자이크 유무(mosaic)를 의미한다.
     mosaic = 0
 
+
+    #############################################################
     if results is None:
         print(filename + "this image doesn't have face")
         return filename + "this image doesn't have face"
+    # 여기가 가장 어색하다고 생각되는 코드이다. 얼굴이 검출되지 않았을 경우에 대한 자세한 코드를 작성하지 않았다.
+    # 이렇게 작성해도 코드는 돌아가지만 이상한 부분이 있다.
+    #############################################################
 
     else:
         for i in range(len(results)):
@@ -71,7 +99,7 @@ def svmPredict(face_embedding_list, SVM_file, out_encoder_file):
         sample = expand_dims(face_embedding_list[i], axis = 0)
 
         yhat_class = SVM_file.predict(sample)
-        yhat_face_name = out_encoder_file.inverse_transform([yhat_class])
+        #yhat_face_name = out_encoder_file.inverse_transform([yhat_class])
         yhat_prob = SVM_file.predict_proba(sample)*100
 
         class_index = yhat_class[0]
@@ -87,8 +115,8 @@ def load_SVM_out_encoder(dont_want_mosaic_facelist):
     # dont_want_mosaic_facelist를 통해서 out_encoder, SVM을 load하는 과정
     # 이 함수는 start_mosaic_function에서 1번만 호출된다.
     
-    SVM_path = 'SVM/'
-    out_encoder_path = 'out_encoder/'
+    SVM_path = "/home/joker_92s/Mosaic_Project/SVM/"
+    out_encoder_path = "/home/joker_92s/Mosaic_Project/out_encoder/"
     
     SVM_path_list = os.listdir(SVM_path)
     SVM_path_list.sort()
@@ -99,13 +127,9 @@ def load_SVM_out_encoder(dont_want_mosaic_facelist):
     index_list_for_load_SVM = []
     index_list_for_load_out_encoder = []
     
-    mod = sys.modules[__name__]
-    
-
     for dont_want_mosaic_face in dont_want_mosaic_facelist:
         index_list_for_load_SVM.append(SVM_path_list.index("SVM_" + dont_want_mosaic_face + ".pkl"))
         index_list_for_load_out_encoder.append(out_encoder_path_list.index("out_encoder_" + dont_want_mosaic_face + ".pkl"))
-        
         
     SVM_list = []
     out_encoder_list = []
@@ -123,28 +147,33 @@ def start_mosaic_function(imagefile , dont_want_mosaic_facelist, threshold):
 # filename는 이미지를 의미하고, dont_want_mosaic_facelist는 모자이크를 하지 말아야하는 사람들 list를 의미한다.
     
     SVM_list, out_encoder_list = load_SVM_out_encoder(dont_want_mosaic_facelist)
-    detector = MTCNN()
-    model = load_model('facenet_keras_weight_module/facenet_keras.h5')
+    model = load_model('/home/joker_92s/Mosaic_Project/facenet_keras_weight_module/facenet_keras.h5')
     
     # 여기서부턴 통신을 통해 이미지를 반복적으로 받고 보내는 과정이 필요하다.
     face_list, coordinate_of_face_list = extract_face(imagefile, required_size = (160,160))
     face_embedding_list = get_embedding(model,face_list)
     
-    for i in range(len(dont_want_mosaic_facelist)):
-        SVM_predict_result = svmPredict(face_embedding_list, SVM_list[i], out_encoder_list[i])
+    for j in range(len(dont_want_mosaic_facelist)):
+        SVM_predict_result = svmPredict(face_embedding_list, SVM_list[j], out_encoder_list[j])
         
         for i, result in enumerate(SVM_predict_result):
-            if (result[0] in dont_want_mosaic_facelist) and (result[1] >= threshold):
+            if (result[0][0] in dont_want_mosaic_facelist) and (result[1] >= threshold):
                 coordinate_of_face_list[i][4] = 1
+            
+            print(coordinate_of_face_list[i])
 
     image = Image.open(imagefile)
+
     for [x1,y1,x2,y2,mosaic] in coordinate_of_face_list:
         if mosaic == 0:
             cropped_image = image.crop((x1,y1,x2,y2))
             blurred_image = cropped_image.filter(ImageFilter.GaussianBlur(radius = 10))
             image.paste(blurred_image,(x1,y1,x2,y2))
 
-    # image.show()
-    # image.save('ITZY_result.jpg')
+    #image.show()
+    image.save('/home/joker_92s/Mosaic_Project/ITZY_result.jpg')
     return np.asarray(image)
 
+
+dont_want_mosaic_facelist = ["ITZY Yuna", "ITZY Yeji"]
+start_mosaic_function("/home/joker_92s/Mosaic_Project/ITZY_for_test.jpg", dont_want_mosaic_facelist, 80.00)
