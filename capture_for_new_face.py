@@ -22,13 +22,13 @@ def start_capture_for_new_face(new_face_name):
     # MTCNN에 대한 부분에서  detect_faces()를 공부해야한다.
     # 객체로 만들었을 경우 여러 이미지를 .detect_faces()를 했을 때, 남아있는지 아니면 한장하고 다른 이미지를 하면 그냥 새로한 이미지에 대한 부분의 정보만 가지고 있는지 확인해야한다.
     
-    image_path = '/home/joker_92s/Mosaic_Project/image2/'
+    image_path = '/home/joker_92s/Mosaic_Project/image_for_test/'
 
     detector = MTCNN()    
     i = 0
     cap =  cv2.VideoCapture(0)
     
-    while i < 100:
+    while i < 20:
         # 100장의 이미지를 찍는다. 각 이미지는 1명의 얼굴만 있어야 한다. 동일한 얼굴이여야 한다.
         success, frame = cap.read()
 
