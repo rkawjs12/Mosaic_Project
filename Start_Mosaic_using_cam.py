@@ -30,32 +30,36 @@ def start_mosaic_using_cam(dont_want_mosaic_facelist, threshold):
     model = load_model('/home/joker_92s/Mosaic_Project/facenet_keras_weight_module/facenet_keras.h5')
 
     cap = cv2.VideoCapture(0)
-    cap.set(3, 500)
-    cap.set(4, 600)
+    cap.set(3, 1000)
+    cap.set(4, 1000)
 
     while (True):
         # cam을 통해 capture한다 
         success, frame = cap.read()
 
         if success:
-            face_list,coordinate_of_face_list = Predict_Facenet_for_Capture.extract_face(frame)
-            face_embedding_list = Predict_Facenet_for_Capture.get_embedding(model,face_list)
+            face_list,coordinate_of_face_list, no_face = Predict_Facenet_for_Capture.extract_face(frame)
 
-            for j in range(len(dont_want_mosaic_facelist)):
-                SVM_predict_result = Predict_Facenet_for_Capture.svmPredict(face_embedding_list, SVM_list[j], out_encoder_list[j])
+            if no_face == 0:
+                # 얼굴이 하나도 검출되지 않은 경우를 확인한다.
+
+                face_embedding_list = Predict_Facenet_for_Capture.get_embedding(model,face_list)
+        
+                for j in range(len(dont_want_mosaic_facelist)):
+                    SVM_predict_result = Predict_Facenet_for_Capture.svmPredict(face_embedding_list, SVM_list[j], out_encoder_list[j])
+                    
+                    for i, result in enumerate(SVM_predict_result):
+                        if (result[0][0] in dont_want_mosaic_facelist) and (result[1] >= threshold):
+                            coordinate_of_face_list[i][4] = 1
                 
-                for i, result in enumerate(SVM_predict_result):
-                    if (result[0][0] in dont_want_mosaic_facelist) and (result[1] >= threshold):
-                        coordinate_of_face_list[i][4] = 1
+                frame = Image.fromarray(frame)
+
+                for [x1,y1,x2,y2,mosaic] in coordinate_of_face_list:
+                    if mosaic == 0:
+                        cropped_image = frame.crop((x1,y1,x2,y2))
+                        blurred_image = cropped_image.filter(ImageFilter.GaussianBlur(radius = 10))
+                        frame.paste(blurred_image,(x1,y1,x2,y2))
             
-            frame = Image.fromarray(frame)
-
-            for [x1,y1,x2,y2,mosaic] in coordinate_of_face_list:
-                if mosaic == 0:
-                    cropped_image = frame.crop((x1,y1,x2,y2))
-                    blurred_image = cropped_image.filter(ImageFilter.GaussianBlur(radius = 10))
-                    frame.paste(blurred_image,(x1,y1,x2,y2))
-
             cv2.imshow("Camera Windwo", np.asarray(frame))
 
         else:
@@ -70,4 +74,4 @@ def start_mosaic_using_cam(dont_want_mosaic_facelist, threshold):
     cv2.destroyAllWindows() 
 
 
-start_mosaic_using_cam(["ITZY Yuna"], 99.99999999)
+start_mosaic_using_cam(["유승우","ITZY Yuna"], 99.99999999)

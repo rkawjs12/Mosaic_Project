@@ -58,14 +58,11 @@ def extract_face(frame, required_size=(160, 160)):
 
     if len(results) == 0:
     # 여기는 얼굴이 검색되지 않으면 그냥 원본 이미지를 face_list, coordinate_of_face에 넣는다.        
-        # face = frame[0:frame.shape[1], 0:frame.shape[0]]
-        image = Image.fromarray(frame)
-        image = image.resize(required_size)
-        face_list.append(asarray(image))
-        coordinate_of_face_list.append([0,0,frame.shape[0],frame.shape[1],0])
-
+        face_list.append(frame)
+        coordinate_of_face_list.append([0, 0, 0, 0, 0])
+        no_face = 1
         #print(" this image doesn't have face")
-        return face_list, coordinate_of_face_list
+        return face_list, coordinate_of_face_list, no_face
 
     else:
         for i in range(len(results)):
@@ -80,9 +77,9 @@ def extract_face(frame, required_size=(160, 160)):
             image = image.resize(required_size)
             face_list.append(asarray(image))
             coordinate_of_face_list.append([x1,y1,x2,y2,mosaic])
+            no_face = 0
             # face_list는 mtcnn을 통해 검출된 얼굴 array 형식으로 저장한 list이다. train_SVM_and_encodernate_of_face_list는 자른 얼굴의 좌표, face_list는 내가 모자이크 안하고자 하는 얼굴,
-        return  face_list, coordinate_of_face_list
-
+        return  face_list, coordinate_of_face_list, no_face
 
 def svmPredict(face_embedding_list, SVM_file, out_encoder_file):
     # face_embedding_list는 잘린 얼굴을 face_embedding시켜 list에 저장한 것, coordinate_of_face_list는 자른 얼굴의 좌표, face_list는 내가 모자이크 안하고자 하는 얼굴,
