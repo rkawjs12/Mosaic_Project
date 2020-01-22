@@ -45,39 +45,27 @@ def get_embedding(model, face_list):
     return face_embedding_list
 
 # extract a single face from a given photograph
-def extract_face(filename, required_size=(160, 160)):
-
-    # load image from file
-    image = Image.open(filename)
-    # convert to RGB, if needed
-    image = image.convert('RGB')
-    # convert to array
-    pixels = asarray(image)
-
+def extract_face(frame, required_size=(160, 160)):
     # detect faces in the image
-    results = detector.detect_faces(pixels)
+    results = detector.detect_faces(frame)
 
     # extract the bounding box from the first face
     face_list =[]
     # face_array는 자른 얼굴을 저장할 list로, 크기는 (160,160,3)
     coordinate_of_face_list =[]
     # coordinate_of_face_list는 자른 얼굴이 가지는 좌표를 나타내는 list로, 크기는 (n,5)이며, n은 detection된 얼굴의 수를 의미한다. 값은 x1, y1, x2, y2, 모자이크 유무(mosaic)를 의미한다.
-
     mosaic = 0
 
-    #############################################################
-    # 여기는 얼굴이 검색되지 않으면 그냥 원본 이미지를 face_list, coordinate_of_face에 넣는다.
     if len(results) == 0:
-        
-        face = pixels[0:image.size[1], 0:image.size[0]]
-        image = Image.fromarray(face)
+    # 여기는 얼굴이 검색되지 않으면 그냥 원본 이미지를 face_list, coordinate_of_face에 넣는다.        
+        # face = frame[0:frame.shape[1], 0:frame.shape[0]]
+        image = Image.fromarray(frame)
         image = image.resize(required_size)
         face_list.append(asarray(image))
-        coordinate_of_face_list.append([0,0,image.size[0],image.size[1],0])
+        coordinate_of_face_list.append([0,0,frame.shape[0],frame.shape[1],0])
 
-        print(filename + " this image doesn't have face")
+        #print(" this image doesn't have face")
         return face_list, coordinate_of_face_list
-    #############################################################
 
     else:
         for i in range(len(results)):
@@ -86,7 +74,7 @@ def extract_face(filename, required_size=(160, 160)):
             x1, y1 = abs(x1), abs(y1)
             x2, y2 = x1 + width, y1 + height
             # extract the face
-            face = pixels[y1:y2, x1:x2]
+            face = frame[y1:y2, x1:x2]
             # resize pixels to the model size
             image = Image.fromarray(face)
             image = image.resize(required_size)
@@ -166,6 +154,7 @@ def start_mosaic_function(imagefile , dont_want_mosaic_facelist, threshold):
         for i, result in enumerate(SVM_predict_result):
             if (result[0][0] in dont_want_mosaic_facelist) and (result[1] >= threshold):
                 coordinate_of_face_list[i][4] = 1
+    
     image = Image.open(imagefile)
 
     for [x1,y1,x2,y2,mosaic] in coordinate_of_face_list:
@@ -174,10 +163,8 @@ def start_mosaic_function(imagefile , dont_want_mosaic_facelist, threshold):
             blurred_image = cropped_image.filter(ImageFilter.GaussianBlur(radius = 10))
             image.paste(blurred_image,(x1,y1,x2,y2))
 
-    #image.show()
-    image.save('/home/joker_92s/Mosaic_Project/ITZY_result.jpg')
     return np.asarray(image)
 
 
-dont_want_mosaic_facelist = ["유승우", "ITZY Chaeryeong"]
-start_mosaic_function("/home/joker_92s/Mosaic_Project/ITZY_for_test.jpg", dont_want_mosaic_facelist, 80.00)
+# dont_want_mosaic_facelist = ["유승우", "ITZY Chaeryeong"]
+# start_mosaic_function("/home/joker_92s/Mosaic_Project/ITZY_for_test.jpg", dont_want_mosaic_facelist, 80.00)
