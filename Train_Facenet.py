@@ -58,7 +58,7 @@ def extract_face(filename, required_size=(160, 160)):
         image = Image.fromarray(face)
         image = image.resize(required_size)
         face_array = asarray(image)
-        return face_array
+        return face_arraynon_face = 0
 
 # load images and extract faces for all images in a directory
 def load_faces(directory):

@@ -30,8 +30,6 @@ def start_mosaic_using_cam(dont_want_mosaic_facelist, threshold):
     model = load_model('/home/joker_92s/Mosaic_Project/facenet_keras_weight_module/facenet_keras.h5')
 
     cap = cv2.VideoCapture(0)
-    cap.set(3, 1000)
-    cap.set(4, 1000)
 
     while (True):
         # cam을 통해 capture한다 
@@ -41,7 +39,7 @@ def start_mosaic_using_cam(dont_want_mosaic_facelist, threshold):
             face_list,coordinate_of_face_list, no_face = Predict_Facenet_for_Capture.extract_face(frame)
 
             if no_face == 0:
-                # 얼굴이 하나도 검출되지 않은 경우를 확인한다.
+                # 얼굴이 검출된 경우
 
                 face_embedding_list = Predict_Facenet_for_Capture.get_embedding(model,face_list)
         
@@ -73,5 +71,4 @@ def start_mosaic_using_cam(dont_want_mosaic_facelist, threshold):
     cap.release()
     cv2.destroyAllWindows() 
 
-
-start_mosaic_using_cam(["유승우","ITZY Yuna"], 99.99999999)
+start_mosaic_using_cam(["ITZY Yuna"], 99.99999999)
